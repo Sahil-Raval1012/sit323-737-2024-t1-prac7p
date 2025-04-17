@@ -1,41 +1,49 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: calculator-app
+  name: enhanced-calculator
   labels:
-    app: calculator-app
+    app: calculator
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: calculator-app
+      app: calculator
   template:
     metadata:
       labels:
-        app: calculator-app
+        app: calculator
     spec:
       containers:
-      - name: calculator-app
-        image: calculator-app:latest
-        imagePullPolicy: Never
+      - name: calculator
+        image: sahil2702/enhanced-calculator:v1
         ports:
-        - containerPort: 3001
+        - containerPort: 3000
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         resources:
           limits:
             cpu: "0.5"
-            memory: "512Mi"
+            memory: "256Mi"
           requests:
             cpu: "0.2"
-            memory: "256Mi"
+            memory: "128Mi"
         livenessProbe:
           httpGet:
             path: /health
-            port: 3001
-          initialDelaySeconds: 15
-          periodSeconds: 20
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: 3000
           initialDelaySeconds: 5
           periodSeconds: 10
