@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SIT737 - Task 4.2C</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        .container {
+            margin-top: 50px;
+        }
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #e8f5e9;
+            border: 1px solid #a5d6a7;
+        }
+        .error {
+            background-color: #ffebee;
+            border: 1px solid #ef9a9a;
+        }
+        .card-action {
+            display: flex;
+            justify-content: space-between;
+        }
+        .divider {
+            margin: 20px 0;
+        }
+        #calculationHistory {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="blue darken-3">
+        <div class="nav-wrapper container">
+            <a href="#" class="brand-logo">SIT737 - Task 6.1P</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col s12 m6">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">Calculator</span>
+                        <div class="row">
+                            <div class="input-field col s12">
+                                <input id="num1" type="number" class="validate">
+                                <label for="num1">Number 1</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="input-field col s12">
+                                <input id="num2" type="number" class="validate">
+                                <label for="num2">Number 2</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-action">
+                        <button class="btn waves-effect waves-light blue" id="addBtn">
+                            Add
+                            <i class="material-icons right">add</i>
+                        </button>
+                        <button class="btn waves-effect waves-light blue" id="subtractBtn">
+                            Subtract
+                            <i class="material-icons right">remove</i>
+                        </button>
+                        <button class="btn waves-effect waves-light blue" id="multiplyBtn">
+                            Multiply
+                            <i class="material-icons right">close</i>
+                        </button>
+                        <button class="btn waves-effect waves-light blue" id="divideBtn">
+                            Divide
+                            <i class="material-icons right">remove</i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="resultContainer" class="result-container">
+                    <h5>Result:</h5>
+                    <p id="result"></p>
+                </div>
+            </div>
+
+            <div class="col s12 m6">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">Calculation History</span>
+                        <div id="calculationHistory">
+                            <p class="center-align" id="noHistoryMessage">No calculations yet</p>
+                        </div>
+                    </div>
+                    <div class="card-action">
+                        <button class="btn waves-effect waves-light red" id="clearHistoryBtn">
+                            Clear History
+                            <i class="material-icons right">delete</i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load history from localStorage
+            loadHistory();
+
+            // Add event listeners to calculator buttons
+            document.getElementById('addBtn').addEventListener('click', function() {
+                calculate('add');
+            });
+
+            document.getElementById('subtractBtn').addEventListener('click', function() {
+                calculate('subtract');
+            });
+
+            document.getElementById('multiplyBtn').addEventListener('click', function() {
+                calculate('multiply');
+            });
+
+            document.getElementById('divideBtn').addEventListener('click', function() {
+                calculate('divide');
+            });
+
+            document.getElementById('clearHistoryBtn').addEventListener('click', function() {
+                clearHistory();
+            });
+        });
+
+        function calculate(operation) {
+            const num1 = parseFloat(document.getElementById('num1').value);
+            const num2 = parseFloat(document.getElementById('num2').value);
+            
+            if (isNaN(num1) || isNaN(num2)) {
+                showResult('Please enter valid numbers', false);
+                return;
+            }
+            
+            // Show loading state
+            showResult('Calculating...', true);
+            
+            // Make API request
+            fetch(`/calculator/${operation}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ num1, num2 }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showResult(data.error, false);
+                } else {
+                    const resultText = `${num1} ${getOperationSymbol(operation)} ${num2} = ${data.result}`;
+                    showResult(resultText, true);
+                    addToHistory(resultText);
+                }
+            })
+            .catch(error => {
+                showResult('Error communicating with server', false);
+                console.error('Error:', error);
+            });
+        }
+
+        function getOperationSymbol(operation) {
+            switch (operation) {
+                case 'add': return '+';
+                case 'subtract': return '-';
+                case 'multiply': return '×';
+                case 'divide': return '÷';
+                default: return '';
+            }
+        }
+
+        function showResult(message, isSuccess) {
+            const resultContainer = document.getElementById('resultContainer');
+            const result = document.getElementById('result');
+            
+            resultContainer.style.display = 'block';
+            result.textContent = message;
+            
+            resultContainer.className = 'result-container';
+            if (message !== 'Calculating...') {
+                resultContainer.classList.add(isSuccess ? 'success' : 'error');
+            }
+        }
+
+        function addToHistory(text) {
+            const historyContainer = document.getElementById('calculationHistory');
+            const noHistoryMessage = document.getElementById('noHistoryMessage');
+            
+            if (noHistoryMessage) {
+                noHistoryMessage.remove();
+            }
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.textContent = text;
+            
+            historyContainer.prepend(historyItem);
+            
+            // Save to localStorage
+            let history = JSON.parse(localStorage.getItem('calculationHistory') || '[]');
+            history.unshift(text);
+            if (history.length > 10) {
+                history = history.slice(0, 10);
+            }
+            localStorage.setItem('calculationHistory', JSON.stringify(history));
+        }
+
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('calculationHistory') || '[]');
+            const historyContainer = document.getElementById('calculationHistory');
+            const noHistoryMessage = document.getElementById('noHistoryMessage');
+            
+            if (history.length > 0) {
+                noHistoryMessage.remove();
+                
+                history.forEach(text => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    historyItem.textContent = text;
+                    historyContainer.appendChild(historyItem);
+                });
+            }
+        }
+
+        function clearHistory() {
+            const historyContainer = document.getElementById('calculationHistory');
+            historyContainer.innerHTML = '<p class="center-align" id="noHistoryMessage">No calculations yet</p>';
+            localStorage.removeItem('calculationHistory');
+        }
+    </script>
+</body>
+</html>
