@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: enhanced-calculator
+  name: calculator-app
   labels:
     app: calculator
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: calculator
@@ -16,10 +16,32 @@ spec:
     spec:
       containers:
       - name: calculator
-        image: sahil2702/enhanced-calculator:v1
+        image: calculator-microservice:2.0.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
         env:
+        - name: PORT
+          value: "3000"
+        - name: MONGO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+        - name: MONGO_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-db-name
+        - name: MONGO_HOST
+          value: "mongodb"
+        - name: MONGO_PORT
+          value: "27017"
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -28,19 +50,12 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        resources:
-          limits:
-            cpu: "0.5"
-            memory: "256Mi"
-          requests:
-            cpu: "0.2"
-            memory: "128Mi"
         livenessProbe:
           httpGet:
             path: /health
             port: 3000
-          initialDelaySeconds: 10
-          periodSeconds: 30
+          initialDelaySeconds: 30
+          periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
